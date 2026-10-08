@@ -1,0 +1,44 @@
+[workspace]
+resolver = "3"
+members = ["crates/core", "crates/wallet", "cli", "app"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "BSD-3-Clause"
+repository = "https://github.com/tari-project/ootle-govapp"
+
+[workspace.dependencies]
+ootle_gov_core = { path = "crates/core" }
+ootle_gov_wallet = { path = "crates/wallet" }
+ootle_byte_type = { git = "https://github.com/tari-project/tari-ootle", rev = "37a84cecafa56e6ddb342f11a4a497ae7b5da745", version = "0.16.0", features = ["crypto"] }
+
+# Tari Ootle 0.46.0, pinned to tari-ootle#2849 (walletd signing requests) until it is released; then replace
+# `git`/`rev` with the crates.io versions. To build against a local checkout, add a `[patch]` in
+# `.cargo/config.toml` (see the README).
+ootle-network = { git = "https://github.com/tari-project/tari-ootle", rev = "37a84cecafa56e6ddb342f11a4a497ae7b5da745", version = "0.2.0" }
+tari_bor = { git = "https://github.com/tari-project/tari-ootle", rev = "37a84cecafa56e6ddb342f11a4a497ae7b5da745", version = "0.16.3" }
+tari_engine_types = { git = "https://github.com/tari-project/tari-ootle", rev = "37a84cecafa56e6ddb342f11a4a497ae7b5da745", version = "0.46.0" }
+tari_ootle_common_types = { git = "https://github.com/tari-project/tari-ootle", rev = "37a84cecafa56e6ddb342f11a4a497ae7b5da745", version = "0.46.0" }
+tari_ootle_transaction = { git = "https://github.com/tari-project/tari-ootle", rev = "37a84cecafa56e6ddb342f11a4a497ae7b5da745", version = "0.46.0", features = ["serde"] }
+tari_ootle_wallet_sdk = { git = "https://github.com/tari-project/tari-ootle", rev = "37a84cecafa56e6ddb342f11a4a497ae7b5da745", version = "0.47.0" }
+tari_ootle_walletd_client = { git = "https://github.com/tari-project/tari-ootle", rev = "37a84cecafa56e6ddb342f11a4a497ae7b5da745", version = "0.47.0" }
+tari_template_lib_types = { git = "https://github.com/tari-project/tari-ootle", rev = "37a84cecafa56e6ddb342f11a4a497ae7b5da745", version = "0.34.1", features = ["serde"] }
+
+anyhow = "1.0.100"
+base64 = "0.22.1"
+clap = { version = "4.5", features = ["derive", "env"] }
+dirs = "6.0"
+hex = "0.4"
+minicbor = { version = "2.3", default-features = false, features = ["alloc", "derive"] }
+rand = "0.10.1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "2.0.17"
+tokio = { version = "1.49.0", default-features = false }
+
+gpui-kit = "=0.7.1"
+keyring-core = "1.0"
+apple-native-keyring-store = "1.0"
+dbus-secret-service-keyring-store = "1.0"
+windows-native-keyring-store = "1.1"

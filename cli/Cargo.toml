@@ -1,0 +1,20 @@
+[package]
+name = "ootle-gov-cli"
+description = "Command-line Ootle governance co-signing"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "ootle-gov"
+path = "src/main.rs"
+
+[dependencies]
+ootle_gov_core = { workspace = true }
+ootle_gov_wallet = { workspace = true }
+
+anyhow = { workspace = true }
+clap = { workspace = true }
+dirs = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "time"] }
