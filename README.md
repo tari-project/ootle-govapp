@@ -93,7 +93,7 @@ ootle-gov submit 3F9A-1C07-88D2-B4E1 --wait
 - `cli`: `ootle-gov`.
 - `app`: the gpui desktop app (`gpui-kit`), Propose / Sign / Collect & submit / Settings.
 
-The Tari Ootle crates are git dependencies pinned to tari-ootle#2849 (walletd signing requests). Switch them to
+The Tari Ootle crates are git dependencies pinned to a tari-ootle `development` commit. Switch them to
 crates.io versions once 0.46.0 is released. To build against a local tari-ootle checkout instead, add a patch in
 `.cargo/config.toml` (not committed):
 

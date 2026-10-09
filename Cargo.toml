@@ -11,19 +11,19 @@ repository = "https://github.com/tari-project/ootle-govapp"
 [workspace.dependencies]
 ootle_gov_core = { path = "crates/core" }
 ootle_gov_wallet = { path = "crates/wallet" }
-ootle_byte_type = { git = "https://github.com/tari-project/tari-ootle", rev = "37a84cecafa56e6ddb342f11a4a497ae7b5da745", version = "0.16.0", features = ["crypto"] }
+ootle_byte_type = { git = "https://github.com/tari-project/tari-ootle", rev = "0ff1520729bc2c28793e3d17c013d848f084cd07", version = "0.16.0", features = ["crypto"] }
 
-# Tari Ootle 0.46.0, pinned to tari-ootle#2849 (walletd signing requests) until it is released; then replace
+# Tari Ootle 0.46.0, pinned to tari-ootle `development` (includes #2849 walletd signing requests and #2859) until it is released; then replace
 # `git`/`rev` with the crates.io versions. To build against a local checkout, add a `[patch]` in
 # `.cargo/config.toml` (see the README).
-ootle-network = { git = "https://github.com/tari-project/tari-ootle", rev = "37a84cecafa56e6ddb342f11a4a497ae7b5da745", version = "0.2.0" }
-tari_bor = { git = "https://github.com/tari-project/tari-ootle", rev = "37a84cecafa56e6ddb342f11a4a497ae7b5da745", version = "0.16.3" }
-tari_engine_types = { git = "https://github.com/tari-project/tari-ootle", rev = "37a84cecafa56e6ddb342f11a4a497ae7b5da745", version = "0.46.0" }
-tari_ootle_common_types = { git = "https://github.com/tari-project/tari-ootle", rev = "37a84cecafa56e6ddb342f11a4a497ae7b5da745", version = "0.46.0" }
-tari_ootle_transaction = { git = "https://github.com/tari-project/tari-ootle", rev = "37a84cecafa56e6ddb342f11a4a497ae7b5da745", version = "0.46.0", features = ["serde"] }
-tari_ootle_wallet_sdk = { git = "https://github.com/tari-project/tari-ootle", rev = "37a84cecafa56e6ddb342f11a4a497ae7b5da745", version = "0.47.0" }
-tari_ootle_walletd_client = { git = "https://github.com/tari-project/tari-ootle", rev = "37a84cecafa56e6ddb342f11a4a497ae7b5da745", version = "0.47.0" }
-tari_template_lib_types = { git = "https://github.com/tari-project/tari-ootle", rev = "37a84cecafa56e6ddb342f11a4a497ae7b5da745", version = "0.34.1", features = ["serde"] }
+ootle-network = { git = "https://github.com/tari-project/tari-ootle", rev = "0ff1520729bc2c28793e3d17c013d848f084cd07", version = "0.2.0" }
+tari_bor = { git = "https://github.com/tari-project/tari-ootle", rev = "0ff1520729bc2c28793e3d17c013d848f084cd07", version = "0.16.3" }
+tari_engine_types = { git = "https://github.com/tari-project/tari-ootle", rev = "0ff1520729bc2c28793e3d17c013d848f084cd07", version = "0.46.0" }
+tari_ootle_common_types = { git = "https://github.com/tari-project/tari-ootle", rev = "0ff1520729bc2c28793e3d17c013d848f084cd07", version = "0.46.0" }
+tari_ootle_transaction = { git = "https://github.com/tari-project/tari-ootle", rev = "0ff1520729bc2c28793e3d17c013d848f084cd07", version = "0.46.0", features = ["serde"] }
+tari_ootle_wallet_sdk = { git = "https://github.com/tari-project/tari-ootle", rev = "0ff1520729bc2c28793e3d17c013d848f084cd07", version = "0.47.0" }
+tari_ootle_walletd_client = { git = "https://github.com/tari-project/tari-ootle", rev = "0ff1520729bc2c28793e3d17c013d848f084cd07", version = "0.47.0" }
+tari_template_lib_types = { git = "https://github.com/tari-project/tari-ootle", rev = "0ff1520729bc2c28793e3d17c013d848f084cd07", version = "0.34.1", features = ["serde"] }
 
 anyhow = "1.0.100"
 base64 = "0.22.1"
