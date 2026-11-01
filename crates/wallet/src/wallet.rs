@@ -65,7 +65,7 @@ pub enum WalletError {
     AccountNotOnChain(ComponentAddress),
     #[error("Account {0} is watch-only in this wallet; it cannot seal or pay")]
     AccountNotOwned(ComponentAddress),
-    #[error("Key {0} is not an account or transactions key in this wallet")]
+    #[error("Key {0} is not an account, transactions or imported key in this wallet")]
     UnknownKey(String),
     #[error(
         "The wallet daemon would sign a different message than this proposal's; refusing (walletd {walletd}, proposal \
@@ -203,7 +203,7 @@ impl Wallet {
         GovernanceView::from_substate_value(substate.substate_value()).map_err(WalletError::GovernanceUnreadable)
     }
 
-    /// Account and transactions keys: the branches walletd will co-sign with.
+    /// Account, transactions and imported account keys: the keys walletd will co-sign with.
     pub async fn signing_keys(&self) -> Result<Vec<WalletKey>, WalletError> {
         let mut keys = Vec::new();
         for branch in SIGNING_BRANCHES {
@@ -214,6 +214,16 @@ impl Wallet {
                     .into_iter()
                     .map(|(key_id, public_key, _)| WalletKey { key_id, public_key }),
             );
+        }
+        for account in self.accounts().await? {
+            if let Some(key_id) = account.owner_key_id &&
+                !keys.iter().any(|k| k.key_id == key_id)
+            {
+                keys.push(WalletKey {
+                    key_id,
+                    public_key: account.owner_public_key,
+                });
+            }
         }
         Ok(keys)
     }
@@ -227,8 +237,19 @@ impl Wallet {
     }
 
     pub async fn accounts(&self) -> Result<Vec<Account>, WalletError> {
-        let response = self.client().list_accounts(0, 100).await?;
-        Ok(response.accounts.into_iter().map(|a| a.account).collect())
+        const PAGE_SIZE: u32 = 100;
+        let mut accounts = Vec::new();
+        let mut offset = 0;
+        loop {
+            let page = self.client().list_accounts(offset, PAGE_SIZE).await?.accounts;
+            let count = u32::try_from(page.len()).unwrap_or(u32::MAX);
+            accounts.extend(page.into_iter().map(|a| a.account));
+            if count < PAGE_SIZE {
+                break;
+            }
+            offset = offset.saturating_add(count);
+        }
+        Ok(accounts)
     }
 
     /// Builds and freezes a proposal. The fee account's owner key will seal; the proposer's council key, if

@@ -233,15 +233,19 @@ impl CollectView {
                     },
                     Ok(SubmissionStatus::Submitted(id)) => Some(id),
                     Ok(SubmissionStatus::Rejected) => {
-                        set_status(&this, cx, "The transaction request was rejected in walletd.".into());
+                        let _ = this.update(cx, |this, cx| {
+                            let _ = this.update_current(|r| r.transaction_request_id = None, cx);
+                            this.status = Some("The transaction request was rejected in walletd.".into());
+                            cx.notify();
+                        });
                         return;
                     },
                     Ok(SubmissionStatus::Expired) => {
-                        set_status(
-                            &this,
-                            cx,
-                            "The transaction request expired before it was approved.".into(),
-                        );
+                        let _ = this.update(cx, |this, cx| {
+                            let _ = this.update_current(|r| r.transaction_request_id = None, cx);
+                            this.status = Some("The transaction request expired before it was approved.".into());
+                            cx.notify();
+                        });
                         return;
                     },
                     Err(e) => {
@@ -269,7 +273,10 @@ impl CollectView {
                                 return;
                             },
                             Ok(_) => {},
-                            Err(e) => set_status(&this, cx, format!("Could not read the result: {e}")),
+                            Err(e) => {
+                                set_status(&this, cx, format!("Could not read the result: {e}"));
+                                cx.background_executor().timer(Duration::from_secs(3)).await;
+                            },
                         }
                     }
                 }

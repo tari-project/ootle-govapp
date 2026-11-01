@@ -17,10 +17,12 @@ use ootle_gov_core::{
     policy::ChainContext,
 };
 use ootle_gov_wallet::{
+    KeyId,
     ProposeRequest,
     SignatureStatus,
     SubmissionStatus,
     Wallet,
+    WalletError,
     key_ref::{format_key_id, parse_key_id},
     store::{ProposalRecord, Store, decode_proposal, default_store_dir},
 };
@@ -177,8 +179,20 @@ async fn main() -> anyhow::Result<()> {
                 current_epoch: info.current_epoch,
                 council: Ok(council),
             })?;
-            let key = match key {
-                Some(k) => wallet.find_key(&parse_key_id(&k).map_err(|e| anyhow!(e))?).await?,
+            let key_id = match key {
+                Some(k) => {
+                    let parsed = parse_key_id(&k).map_err(|e| anyhow!(e))?;
+                    match wallet.find_key(&parsed).await {
+                        Ok(key) => {
+                            if !council.is_member(&key.public_key) {
+                                bail!("{} is not on the council", key.label());
+                            }
+                            key.key_id
+                        },
+                        Err(WalletError::UnknownKey(_)) if matches!(parsed, KeyId::Imported { .. }) => parsed,
+                        Err(e) => return Err(e.into()),
+                    }
+                },
                 None => {
                     let mut members: Vec<_> = wallet
                         .signing_keys()
@@ -187,21 +201,18 @@ async fn main() -> anyhow::Result<()> {
                         .filter(|k| council.is_member(&k.public_key))
                         .collect();
                     match members.len() {
-                        1 => members.remove(0),
+                        1 => members.remove(0).key_id,
                         0 => bail!("this wallet holds no council key"),
                         _ => bail!("this wallet holds several council keys; choose one with --key"),
                     }
                 },
             };
-            if !council.is_member(&key.public_key) {
-                bail!("{} is not on the council", key.label());
-            }
-            let mut record = wallet.request_signature(&text, key.key_id, ttl_secs).await?;
+            let mut record = wallet.request_signature(&text, key_id, ttl_secs).await?;
             store.save_signing(&record)?;
             eprintln!(
                 "Signing request #{} created for {}. Approve it in the walletd UI; fingerprint {}.",
                 record.request_id,
-                key.label(),
+                format_key_id(&key_id),
                 summary.fingerprint
             );
             if wait {
@@ -287,7 +298,15 @@ async fn main() -> anyhow::Result<()> {
                 );
             }
             let request_id = match record.transaction_request_id {
-                Some(id) => id,
+                Some(id) => match wallet.submission_status(id).await? {
+                    SubmissionStatus::Rejected | SubmissionStatus::Expired => {
+                        let id = wallet.submit(&record).await?;
+                        record.transaction_request_id = Some(id);
+                        store.save_proposal(&record)?;
+                        id
+                    },
+                    _ => id,
+                },
                 None => {
                     let id = wallet.submit(&record).await?;
                     record.transaction_request_id = Some(id);
@@ -306,8 +325,16 @@ async fn main() -> anyhow::Result<()> {
                     },
                     SubmissionStatus::Approved => break wallet.broadcast(request_id).await?,
                     SubmissionStatus::Submitted(id) => break id,
-                    SubmissionStatus::Rejected => bail!("the transaction request was rejected"),
-                    SubmissionStatus::Expired => bail!("the transaction request expired"),
+                    SubmissionStatus::Rejected => {
+                        record.transaction_request_id = None;
+                        store.save_proposal(&record)?;
+                        bail!("the transaction request was rejected")
+                    },
+                    SubmissionStatus::Expired => {
+                        record.transaction_request_id = None;
+                        store.save_proposal(&record)?;
+                        bail!("the transaction request expired")
+                    },
                 }
             };
             record.transaction_id = Some(transaction_id);

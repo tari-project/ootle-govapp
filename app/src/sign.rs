@@ -191,10 +191,12 @@ impl SignView {
                                 true
                             },
                             Ok(SignatureStatus::Rejected) => {
+                                this.record = None;
                                 this.status = Some("The signing request was rejected in walletd.".into());
                                 true
                             },
                             Ok(SignatureStatus::Expired) => {
+                                this.record = None;
                                 this.status = Some("The signing request expired before it was approved.".into());
                                 true
                             },
