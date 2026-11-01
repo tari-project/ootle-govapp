@@ -28,6 +28,9 @@ pub struct ProposalParams {
 ///
 /// `max_epoch` is the last epoch the call can still succeed in, so the transaction cannot outlive its use.
 pub fn build_unsigned(params: &ProposalParams) -> Result<UnsignedTransaction, PolicyError> {
+    if !params.max_fee.is_positive() {
+        return Err(PolicyError::ZeroFee);
+    }
     let max_epoch = params
         .action
         .last_executable_epoch()

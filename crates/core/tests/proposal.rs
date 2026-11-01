@@ -129,6 +129,74 @@ fn an_edited_header_is_refused() {
 }
 
 #[test]
+fn a_stripped_or_recased_header_is_refused() {
+    let proposer = member(1);
+    let text = armor::encode(&Payload::ProposalV1(proposal(&proposer)));
+    let stripped: String = text
+        .lines()
+        .filter(|line| !line.starts_with("Action:"))
+        .map(|line| format!("{line}\n"))
+        .collect();
+    assert!(matches!(
+        armor::decode(&stripped),
+        Err(PayloadError::HeaderMismatch { name: "Action", .. })
+    ));
+
+    let recased = text.replace(
+        "Action: Set burn rate to 7.00% (700 bps)",
+        "action: Set burn rate to 1.00% (100 bps)",
+    );
+    assert!(matches!(
+        armor::decode(&recased),
+        Err(PayloadError::HeaderMismatch { name: "Action", .. })
+    ));
+}
+
+#[test]
+fn a_proposal_missing_required_inputs_is_refused() {
+    let proposer = member(1);
+    let mut missing_gov = proposal(&proposer);
+    let UnsignedTransaction::V1(ref mut tx) = missing_gov.unsigned;
+    tx.inputs = [InputDeclaration::write(fee_account())].into_iter().collect();
+    assert!(matches!(missing_gov.inspect(), Err(PolicyError::MissingInput(_))));
+
+    let mut read_only_fee = proposal(&proposer);
+    let UnsignedTransaction::V1(ref mut tx) = read_only_fee.unsigned;
+    tx.inputs = [
+        InputDeclaration::write(GOVERNANCE_COMPONENT),
+        InputDeclaration::read(fee_account()),
+    ]
+    .into_iter()
+    .collect();
+    assert!(matches!(read_only_fee.inspect(), Err(PolicyError::MissingInput(_))));
+}
+
+#[test]
+fn an_inverted_epoch_range_or_zero_fee_is_refused() {
+    assert_eq!(
+        build_unsigned(&ProposalParams {
+            network: Network::LocalNet,
+            action: GovernanceAction::set_burn_rate(700, 100).unwrap(),
+            fee_account: fee_account(),
+            max_fee: Amount::zero(),
+            seal_signer_authorized: true,
+            nonce: 42,
+        })
+        .unwrap_err(),
+        PolicyError::ZeroFee
+    );
+
+    let proposer = member(1);
+    let mut inverted = proposal(&proposer);
+    let UnsignedTransaction::V1(ref mut tx) = inverted.unsigned;
+    tx.min_epoch = Some(Epoch(99));
+    assert_eq!(inverted.inspect().unwrap_err(), PolicyError::InvalidEpochRange {
+        min_epoch: 99,
+        max_epoch: 98,
+    });
+}
+
+#[test]
 fn a_truncated_paste_is_refused() {
     let proposer = member(1);
     let text = armor::encode(&Payload::ProposalV1(proposal(&proposer)));

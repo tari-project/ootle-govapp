@@ -17,6 +17,8 @@ pub enum PolicyError {
     FeeInstructionCount(usize),
     #[error("The fee instruction is not a `pay_fee` call on an account: {0}")]
     UnexpectedFeeInstruction(String),
+    #[error("The fee ceiling must be greater than zero")]
+    ZeroFee,
     #[error("The transaction must make exactly one governance call, found {0} instructions")]
     InstructionCount(usize),
     #[error("Unexpected instruction: {0}")]
@@ -34,6 +36,10 @@ pub enum PolicyError {
          then"
     )]
     VersionedInput(String),
+    #[error("The transaction is missing required writable input {0}")]
+    MissingInput(String),
+    #[error("The transaction's minimum epoch {min_epoch} is after its maximum epoch {max_epoch}")]
+    InvalidEpochRange { min_epoch: u64, max_epoch: u64 },
     #[error(
         "The transaction stays valid until epoch {max_epoch}, but the change activates at epoch {activation_epoch} \
          and must execute by epoch {last_executable}"

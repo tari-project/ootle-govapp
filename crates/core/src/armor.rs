@@ -82,7 +82,7 @@ pub fn decode(text: &str) -> Result<Payload, PayloadError> {
     }
 
     let bytes = STANDARD.decode(body.as_bytes())?;
-    let payload: Payload = tari_bor::decode(&bytes).map_err(|e| PayloadError::Decode(e.to_string()))?;
+    let payload: Payload = tari_bor::decode_exact(&bytes).map_err(|e| PayloadError::Decode(e.to_string()))?;
 
     let armored_kind = PayloadKind::from_label(&kind).ok_or(PayloadError::NoArmor)?;
     if payload.kind() != armored_kind {
@@ -93,16 +93,27 @@ pub fn decode(text: &str) -> Result<Payload, PayloadError> {
     }
 
     let actual = headers(&payload);
-    for (name, claimed) in &claimed_headers {
-        if let Some((name, actual)) = actual.iter().find(|(n, _)| *n == name.as_str()) &&
-            claimed != actual
-        {
-            return Err(PayloadError::HeaderMismatch {
-                name,
-                header: claimed.clone(),
-                actual: actual.clone(),
-            });
+    for (name, actual_val) in &actual {
+        match claimed_headers.iter().find(|(n, _)| n.eq_ignore_ascii_case(name)) {
+            Some((claimed_name, claimed_val)) if claimed_name == *name && claimed_val == actual_val => {},
+            Some((_, claimed_val)) => {
+                return Err(PayloadError::HeaderMismatch {
+                    name,
+                    header: claimed_val.clone(),
+                    actual: actual_val.clone(),
+                });
+            },
+            None => {
+                return Err(PayloadError::HeaderMismatch {
+                    name,
+                    header: String::new(),
+                    actual: actual_val.clone(),
+                });
+            },
         }
+    }
+    if claimed_headers.len() != actual.len() {
+        return Err(PayloadError::Decode("unexpected or duplicate armor header".to_string()));
     }
 
     Ok(payload)

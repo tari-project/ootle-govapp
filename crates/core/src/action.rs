@@ -123,7 +123,7 @@ where T: for<'a> tari_bor::Decode<'a, ()> {
             reason: "argument is not a literal value".to_string(),
         });
     };
-    tari_bor::decode(bytes).map_err(|e| PolicyError::BadArguments {
+    tari_bor::decode_exact(bytes).map_err(|e| PolicyError::BadArguments {
         method,
         reason: e.to_string(),
     })
@@ -161,5 +161,19 @@ mod tests {
             GovernanceAction::set_burn_rate(700, 1).unwrap().last_executable_epoch(),
             None
         );
+    }
+
+    #[test]
+    fn trailing_bytes_in_literal_arguments_are_refused() {
+        let mut bytes = tari_bor::encode(&700u16).unwrap();
+        bytes.push(0xff);
+        let arg = InstructionArg::Literal(bytes.into());
+        assert!(matches!(
+            decode_literal::<u16>("set_burn_rate", &arg),
+            Err(PolicyError::BadArguments {
+                method: "set_burn_rate",
+                ..
+            })
+        ));
     }
 }

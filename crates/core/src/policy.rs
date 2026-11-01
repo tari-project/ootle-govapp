@@ -1,6 +1,7 @@
 //! What a proposal says, and whether this tool will sign or assemble it.
 
 use ootle_network::Network;
+use tari_engine_types::substate::SubstateId;
 use tari_ootle_transaction::{Instruction, UnsignedTransaction};
 use tari_template_lib_types::{Amount, ComponentAddress, crypto::RistrettoPublicKeyBytes};
 
@@ -58,11 +59,27 @@ impl ProposalV1 {
         if let Some(input) = tx.inputs.iter().find(|input| input.version.is_some()) {
             return Err(PolicyError::VersionedInput(input.substate_id.to_string()));
         }
+        for required in [GOVERNANCE_COMPONENT, fee_account] {
+            let expected = SubstateId::Component(required);
+            if !tx
+                .inputs
+                .iter()
+                .any(|input| input.substate_id == expected && input.is_write)
+            {
+                return Err(PolicyError::MissingInput(required.to_string()));
+            }
+        }
 
         let last_executable = action
             .last_executable_epoch()
             .ok_or(PolicyError::ActivationTooEarly(action.activation_epoch()))?;
         let max_epoch = tx.max_epoch.as_u64();
+        let min_epoch = tx.min_epoch.map(|e| e.as_u64());
+        if let Some(min_epoch) = min_epoch &&
+            min_epoch > max_epoch
+        {
+            return Err(PolicyError::InvalidEpochRange { min_epoch, max_epoch });
+        }
         if max_epoch > last_executable {
             return Err(PolicyError::OutlivesActivationLead {
                 max_epoch,
@@ -77,7 +94,7 @@ impl ProposalV1 {
             action,
             fee_account,
             max_fee,
-            min_epoch: tx.min_epoch.map(|e| e.as_u64()),
+            min_epoch,
             max_epoch,
             seal_public_key: self.seal_public_key,
             seal_signer_authorized: tx.is_seal_signer_authorized,
@@ -161,5 +178,8 @@ fn decode_pay_fee(instruction: &Instruction) -> Result<(ComponentAddress, Amount
         return Err(unexpected());
     };
     let max_fee = decode_literal::<Amount>("pay_fee", max_fee)?;
+    if !max_fee.is_positive() {
+        return Err(PolicyError::ZeroFee);
+    }
     Ok((*account, max_fee))
 }
